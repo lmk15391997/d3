@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>d3</title>
+    <script src="./js/d3.min.js"></script>
+    <script>
+        window.onload=function(){
+            let oC=document.getElementById('c1');
+            let gd=oC.getContext('2d');
+            let nodes=[
+                {name: 'n1'},
+                {name: 'n2'},
+                {name: 'n3'}
+            ];
+
+            let links=[
+                {source: 'n1',target: 'n2', value: 300},
+                {source: 'n2',target: 'n3', value: 400},
+                {source: 'n3',target: 'n1', value: 500},
+            ];
+
+            let sim=d3.forceSimulation()
+                .nodes(nodes)
+                .force('link',d3.forceLink(links).id(item=>item.name).distance(item=>item.value)) 
+                //对象 id的item是nodes distance的item是links
+                .force('charge',d3.forceManyBody())
+                .force('center',d3.forceCenter(oC.width/2,oC.height/2))
+
+                console.log(sim)
+                sim.on('tick', ()=>{
+                    console.log(nodes)
+                    gd.clearRect(0,0,oC.width,oC.height);
+                    links.forEach(link=>{
+                        gd.beginPath();
+                        gd.moveTo(link.source.x, link.source.y);
+                        gd.lineTo(link.target.x, link.target.y);
+                        
+                        gd.strokeStyle='#999';
+                        gd.stroke();
+                    });
+                    nodes.forEach(node=>{
+                        //node本身
+                        gd.beginPath();
+
+                        gd.arc(node.x, node.y, 3, 0, Math.PI*2, true)
+                        gd.fillStyle='black';
+                        gd.fill();
+                        gd.fillText(node.name, node.x, node.y)
+                    });
+                    
+                    
+                });
+        }
+    </script>
+</head>
+<body>
+    <canvas id='c1' width='800' height="600"></canvas>
+</body>
+</html>

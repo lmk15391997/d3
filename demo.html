@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>d3demo</title>
+    <script src="./js/d3.min.js"></script>
+  </head>
+  <style>
+  </style>
+  <body>
+    <svg width="1060" height="860"></svg>
+    <script>
+    	var marge = {top:60,bottom:60,left:60,right:60}
+        var svg = d3.select("svg")
+        .call( d3.zoom().scaleExtent([0.5,1.5]).on("zoom", ()=> {
+            svg.attr("transform", d3.event.transform);
+        })).on("dblclick.zoom", null);
+    	var width = svg.attr("width")
+    	var height = svg.attr("height")
+    	var g = svg.append("g")
+    		.attr("transform","translate("+marge.top+","+marge.left+")");
+    		
+    	//准备数据
+    	var nodes = [
+    		{name:"Nike", img: "E:/web/workplace/d3/images/Nike.png"},//0
+    		{name:"USA", img: "./images/USA.png"},//1
+    		{name:"Apple", img: "./images/Apple.png"},//2
+    		{name:"Adidas", img: "./images/Adidas.png"},//3
+    		{name:"Samsung", img: "./images/Samsung.png"},//4
+    		{name:"Adidas China", img: "./images/Adidas China.png"},//5
+    		{name:"McDonald", img: "./images/McDonald.png"},//6
+            {name:"KFC", img: "./images/KFC.png"},//7
+            {name:"KFC China", img: "./images/KFC China.png"},//8
+            {name:"Jack Ma", img: "./images/Jack Ma.png"},//9
+            {name:"Alibaba", img: "./images/Alibaba.png"},//10
+            {name:"Tencent", img: "./images/Tencent.png"},//11
+            {name:"JD.com", img: "./images/JD.com.png"},//12
+            {name:"Toyota", img: "./images/Toyota.png"},//13
+            {name:"Tesla", img: "./images/Tesla.png"},//14
+            {name:"Geely", img: "./images/Geely.png"},//15
+    	];
+    	
+    	var edges = [
+    		{source:0,target:1,relation:"acquired",value:1},
+    		{source:2,target:4,relation:"sued",value:2},
+    		{source:3,target:0,relation:"sued",value:1},
+    		{source:3,target:5,relation:"decreased stake of",value:2},
+    		{source:6,target:1,relation:"increased stake of",value:2},
+    		{source:7,target:8,relation:"decreased stake of",value:2},
+    		{source:9,target:10,relation:"Is CEO of",value:1.5},
+    		{source:11,target:12,relation:"increased stake of",value:2},
+    		{source:13,target:14,relation:"cooperated with",value:1.8},
+    		{source:15,target:14,relation:"acquired",value:1}
+    	];
+    	//设置一个color的颜色比例尺，为了让不同的扇形呈现不同的颜色
+    	var colorScale = d3.scaleOrdinal()
+    		.domain(d3.range(nodes.length))
+    		.range(d3.schemeCategory10);
+    	
+    	//新建一个力导向图
+    	var forceSimulation = d3.forceSimulation()
+    		.force("link",d3.forceLink())
+    		.force("charge",d3.forceManyBody().strength(-100))//使节点不重叠
+            .force("center",d3.forceCenter(width/2,height/2))
+            .force("collide", d3.forceCollide(60).strength(0.4).iterations(5))
+    	//初始化力导向图，也就是传入数据
+    	//生成节点数据
+    	forceSimulation.nodes(nodes)
+    		.on("tick",ticked);//这个函数很重要，后面给出具体实现和说明
+    	//生成边数据
+    	forceSimulation.force("link")
+    		.links(edges)
+    		.distance(item=>item.value*100)//每一边的长度 item指的是边的数据edges
+    			 	
+    	//在浏览器的控制台输出
+    	console.log(nodes);
+    	console.log(edges);
+        
+        
+
+    	//有了节点和边的数据后，我们开始绘制
+    	//绘制边
+    	var links = g.append("g")
+    		.selectAll("line")
+    		.data(edges)
+    		.enter()
+            .append("line")
+            .attr("d", "M 0 0 8 4 0 8Z")
+    		.attr("stroke",function(d,i){
+    			return colorScale(i);
+    		})
+            .attr("stroke-width",1)
+            .on('mouseover', function () {
+             d3.select(this).attr('stroke-width', 4);
+            })
+    .on('mouseout', function () {
+             d3.select(this).attr('stroke-width', 1);
+            })
+ 
+    svg.append("svg:defs").selectAll("marker")
+        .data(["suit", "licensing", "resolved"])
+        .enter().append("svg:marker")
+        .attr("viewBox", "0 -5 10 10")
+        .attr("refX", 6)
+        .attr("refY", 6)
+        .attr("markerWidth", 12)
+        .attr("markerHeight", 12)
+        .attr("orient", "auto")
+        .append("svg:path")
+        .attr("d", "M0,-5L10,0L0,5");
+
+    var path = svg.append("svg:g").selectAll("path")
+        .data(edges)
+        .enter().append("svg:path")
+
+    	var linksText = g.append("g")
+    		.selectAll("text")
+    		.data(edges)
+    		.enter()
+            .append("text")
+            .attr("text-anchor", "middle") 
+    		.text(function(d){
+    			return d.relation;
+    		})
+    	
+    	//绘制节点
+    	var gs = g.selectAll()
+    		.data(nodes)
+    		.enter()
+    		.append("g")
+    		.attr("transform",function(d,i){      //d是节点，i是序号
+                console.log(d,i)
+    			var cirX = d.x;
+    			var cirY = d.y;
+    			return "translate("+cirX+","+cirY+")";
+            })
+            //拖拽
+    		.call(d3.drag()
+    			.on("start",started)
+    			.on("drag",dragged)
+    			.on("end",ended)
+    		);
+    	//绘制节点
+    	gs.append("circle")
+    		.attr("r",45)
+            .attr("fill","#fff")
+            .attr("stroke","#ccf1fc")
+            .attr("stroke-width", 3)
+            
+        //图片
+        gs.append("image")
+            .attr('xlink:href',function(url,i){
+                return nodes[i].img;
+            })
+	 			.attr("x", -54)
+	 			.attr("y", -54)
+	 			.attr("width", 107)
+                .attr("height",107)
+                .style("cursor", "pointer")
+                // .attr("d", "M 0,0, 57.7,-100, 115.5,0z")
+                .on('mouseover', function () {
+             d3.select(this).attr('stroke-width', 5);
+            })
+            .on('mouseout', function () {
+             d3.select(this).attr('stroke-width', 3);
+            })
+        // 添加rect
+        // gs.append("rect")
+        // .attr("x", 0)
+        // .attr("y", 60)
+        // .attr("width", 90)
+        // .attr("height", 30)
+        // .attr("fill", "black")
+        // .style("opacity",0.5)
+        // .style("overflow","hidden")
+
+        
+        //文字
+        
+        gs.append("text")
+            .attr("dx",0)
+            .attr("dy",60)
+            .attr("text-anchor", "middle")
+    		.text(function(d){
+    			return d.name;
+            })
+
+    	function ticked(){
+           
+    		links
+    			.attr("x1",function(d){return d.source.x;})
+    			.attr("y1",function(d){return d.source.y;})
+    			.attr("x2",function(d){return d.target.x;})
+    			.attr("y2",function(d){return d.target.y;});
+    			
+    		linksText
+    			.attr("x",function(d){
+    			return (d.source.x+d.target.x)/2;
+    		})
+    		.attr("y",function(d){
+    			return (d.source.y+d.target.y)/2;
+    		});
+    		gs
+    			.attr("transform",function(d) { 
+                    return "translate(" + circleinX(d.x) + "," + circleinY(d.y) + ")"; });	
+    		// gs
+    		// 	.attr("transform",function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+    	}
+    	function started(d){
+    		if(!d3.event.active){
+    			forceSimulation.alphaTarget(0.8).restart();
+    		}
+    		d.fx = d.x;
+    		d.fy = d.y;
+    	}
+    	function dragged(d){
+    		d.fx = d3.event.x;
+    		d.fy = d3.event.y;
+    	}
+    	function ended(d){
+    		if(!d3.event.active){
+    			forceSimulation.alphaTarget(0);
+            }
+            
+    		d.fx = null;
+    		d.fy = null;
+        }
+        function circleinX(x){
+            if(x<0)x=0;
+            if(x>width)x=width;
+            return x;
+        }
+        function circleinY(y){
+            if(y<0)y=0;
+            if(y>height)y=height;
+            return y;
+        }
+    </script>
+  </body>
+</html>
