@@ -138,7 +138,7 @@
       .attr("viewBox", "0 -5 10 10") //坐标系的区域
       .attr("refX", 48) //箭头坐标
       .attr("refY", 0)
-      .attr("markerWidth", 12) //标识的大小
+      .attr("markerWidth", 12) 
       .attr("markerHeight", 12)
       .attr("orient", "auto") //方向
       .attr("stroke-width", 2) //箭头宽度
@@ -171,7 +171,7 @@
       .data(edges)
       .enter()
       .append("text")
-      .attr("text-anchor", "middle")
+      .attr("text-anchor", "middle") //居中显示
       .attr("font-size", "12")
       .text(function (d) {
         return d.relation;
